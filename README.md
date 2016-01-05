@@ -16,3 +16,18 @@ This command-line tool allows one to do the following:
 
 * Count the number of events stored on iCloud Calendars
 * Delete old events stored on iCloud Calendars
+
+Syntax
+---
+
+```
+calutil count
+```
+
+Count all events on all iCloud calendars for the past 10 years.
+
+```
+calutil count 5 year|month|day
+```
+
+Count all events on all iCloud calendars for the past 5 years/months/days.
