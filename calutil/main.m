@@ -14,7 +14,7 @@ EKEventStore *eventStore = nil;
 
 #define EVENT_ACCESS_ALLOWED [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent]==[EKAuthorizationStatusAuthorized]
 
-typedef void (*basic_function_t)(int, int, int, int, NSArray *);
+typedef void (*basic_function_t)(int, int, int, int, int, NSArray *);
 
 typedef enum {
 				RANGE_YEAR = 0,
@@ -34,8 +34,8 @@ bool getInput(NSString *goodResponse) {
     return (NSOrderedSame == [[inputString stringByTrimmingCharactersInSet: [NSCharacterSet newlineCharacterSet]]caseInsensitiveCompare:goodResponse]);
 }
 
-void listCalendars(int a, int b, int c, int d, NSArray *e) {
-
+void listCalendars(int a, int b, int c, int d, int e, NSArray *f) {
+				//no parameters used
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 101100
 				NSArray<EKCalendar *> *calendars = [eventStore calendarsForEntityType:EKEntityTypeEvent];
 #else
@@ -57,13 +57,14 @@ void listCalendars(int a, int b, int c, int d, NSArray *e) {
 				exit(0);
 }
 
-void countEvents(int a, int b, int c, int d, NSArray *e) {
+void countEvents(int a, int b, int c, int d, int e, NSArray *f) {
 
 				range_unit_t rangeType = a;
 				NSUInteger numberOfIterations = b;
 				operation_type_t operation = c;
 				NSUInteger keep = d;
-				NSArray *calendarNames = e;
+				range_unit_t rangeTypeForKeep = e;
+				NSArray *calendarNames = f;
 				
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 101100
 				NSArray<EKCalendar *> *calendars = [eventStore calendarsForEntityType:EKEntityTypeEvent];
@@ -103,7 +104,7 @@ void countEvents(int a, int b, int c, int d, NSArray *e) {
 								endDay = [currentCalendar dateByAddingComponents:previousDay toDate:[NSDate date] options:0];
 								
 								if(keep){
-												switch (rangeType){
+												switch (rangeTypeForKeep){
 																case RANGE_DAY:
 																realEnd = [[NSDateComponents alloc]init];
 																[realEnd setDay:-1 * keep];
@@ -160,7 +161,8 @@ void countEvents(int a, int b, int c, int d, NSArray *e) {
 												NSPredicate *allEventsPredicate = [eventStore predicateForEventsWithStartDate:startDate endDate:endDate calendars:cloudCalendars];
 
 												[eventStore enumerateEventsMatchingPredicate:allEventsPredicate usingBlock:^(EKEvent *event, BOOL *stop) {
-																if ((!event.recurrenceRules) || (![event.recurrenceRules count])) {
+																
+												if (!event.hasRecurrenceRules) {
 																				[events addObject:event];
 																}
 												}];
@@ -234,13 +236,13 @@ void countEvents(int a, int b, int c, int d, NSArray *e) {
 				exit(0);
 }
 
-void requestAccessAndDoIt(basic_function_t doIt, int a, int b, int c, int d, NSArray *e) {
+void requestAccessAndDoIt(basic_function_t doIt, int a, int b, int c, int d, int e, NSArray *f) {
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 1090
 				eventStore = [[EKEventStore alloc]init];
 				[eventStore requestAccessToEntityType:EKEntityTypeEvent completion:^(BOOL granted, NSError *error) {
 								if (granted) {
 												dispatch_async(dispatch_get_main_queue(), ^{
-																doIt(a, b, c, d, e);
+																doIt(a, b, c, d, e, f);
 												});
 								}else{
 												NSLog(@"Calendar access denied!");
@@ -251,7 +253,7 @@ void requestAccessAndDoIt(basic_function_t doIt, int a, int b, int c, int d, NSA
 #else
 				eventStore = [[EKEventStore alloc]initWithAccessToEntityTypes:EKEntityMaskEvent];
 				if (EVENT_ACCESS_ALLOWED) {
-								doIt(a, b, c, d, e);
+								doIt(a, b, c, d, e, f);
 				}
 #endif
 }
@@ -274,7 +276,7 @@ int main(int argc, const char * argv[]) {
 				}
 
 				if ([arguments containsObject:@"list"]) {
-								requestAccessAndDoIt(listCalendars, 0, 0, 0, 0, nil);
+								requestAccessAndDoIt(listCalendars, 0, 0, 0, 0, 0, nil);
 				}else
 				
 				i = [arguments indexOfObject:@"except"];
@@ -286,17 +288,8 @@ int main(int argc, const char * argv[]) {
 				}
 				
 				//defaults
-				int rangeType = RANGE_YEAR;
+				range_unit_t rangeType = RANGE_YEAR;
 				int numberOfIterations = 10;
-				int keep = 0;
-
-				i = [arguments indexOfObject:@"keep"];
-				if ((i != NSNotFound) && (i > 1)){
-								int _keep = [[arguments objectAtIndex:i - 1]intValue];
-								if ((_keep != INT_MAX) && (_keep != INT_MIN) && (_keep > 0)) {
-												keep = _keep;
-								}
-				}
 					
 				i = [arguments indexOfObject:@"year"];
 				if ((i != NSNotFound) && (i > 1)){
@@ -323,13 +316,51 @@ int main(int argc, const char * argv[]) {
 												}
 								}
 				}
+				
+				range_unit_t rangeTypeForKeep = rangeType;
+				int keep = 0;
+
+				i = [arguments indexOfObject:@"keep"];
+				if ((i != NSNotFound) && (i > 1)){
+								int _keep = [[arguments objectAtIndex:i - 1]intValue];
+								if ((_keep != INT_MAX) && (_keep != INT_MIN) && (_keep > 0)) {
+												keep = _keep;
+								}
+				}else{
+								i = [arguments indexOfObject:@"year-keep"];
+								if ((i != NSNotFound) && (i > 1)){
+												rangeTypeForKeep = RANGE_YEAR;
+												int _keep = [[arguments objectAtIndex:i - 1]intValue];
+												if ((_keep != INT_MAX) && (_keep != INT_MIN) && (_keep > 0)) {
+																keep = _keep;
+												}
+								}else{
+												i = [arguments indexOfObject:@"month-keep"];
+												if ((i != NSNotFound) && (i > 1)){
+																rangeTypeForKeep = RANGE_MONTH;
+																int _keep = [[arguments objectAtIndex:i - 1]intValue];
+																if ((_keep != INT_MAX) && (_keep != INT_MIN) && (_keep > 0)) {
+																				keep = _keep;
+																}
+												}else{
+																i = [arguments indexOfObject:@"day-keep"];
+																if ((i != NSNotFound) && (i > 1)){
+																				rangeTypeForKeep = RANGE_DAY;
+																				int _keep = [[arguments objectAtIndex:i - 1]intValue];
+																				if ((_keep != INT_MAX) && (_keep != INT_MIN) && (_keep > 0)) {
+																								keep = _keep;
+																				}
+																}
+												}
+								}
+				}
 					
 				if ([arguments containsObject:@"count"]) {
-								requestAccessAndDoIt(countEvents, rangeType, numberOfIterations, OPERATION_COUNT, keep, calendarNames);
+								requestAccessAndDoIt(countEvents, rangeType, numberOfIterations, OPERATION_COUNT, keep, rangeTypeForKeep, calendarNames);
 				}
 
 				if ([arguments containsObject:@"delete"]) {
-								requestAccessAndDoIt(countEvents, rangeType, numberOfIterations, OPERATION_DELETE, keep, calendarNames);
+								requestAccessAndDoIt(countEvents, rangeType, numberOfIterations, OPERATION_DELETE, keep, rangeTypeForKeep, calendarNames);
 				}
 				
 	}
