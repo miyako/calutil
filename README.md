@@ -14,8 +14,8 @@ Applications that depend on iCloud data sync might have to do some regular house
 
 This command-line tool allows one to do the following:
 
-* Count the number of events stored on iCloud calendars
-* Delete old events stored on iCloud calendars
+* Count the number of iCloud calendar events
+* Delete old iCloud calendar events
 
 Syntax
 ---
