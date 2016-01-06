@@ -10,7 +10,7 @@ The total number of calandars, events and reminders on iCloud can not exceed 25,
 
 https://support.apple.com/en-us/HT202158
 
-Applications that depend on iCloud data sync might have to do some regular house keeping to make sure the number of records under control. 
+Applications that depend on iCloud data sync might have to do some regular house keeping to make sure the number of records is under control. 
 
 This command-line tool allows one to do the following:
 
